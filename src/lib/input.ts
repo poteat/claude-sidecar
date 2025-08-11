@@ -7,8 +7,8 @@ export class InputReader {
   private queue: MessageQueue;
   private isRunning: boolean = false;
   private commands = [
-    { name: "/status", description: "Show queue status" },
-    { name: "/clear", description: "Clear all messages" },
+    { name: "/status", description: "View queued messages" },
+    { name: "/clear", description: "Clear message queue" },
     { name: "/help", description: "Show available commands" },
     { name: "/exit", description: "Exit the program" },
   ];
@@ -114,7 +114,7 @@ export class InputReader {
     // Listen for raw keypress events for immediate ESC handling
     if (process.stdin.isTTY) {
       // Use raw stdin for ESC detection to avoid readline buffering
-      process.stdin.on('data', (chunk) => {
+      process.stdin.on("data", (chunk) => {
         // ESC key is ASCII 27 (0x1B)
         if (chunk[0] === 27 && chunk.length === 1) {
           console.log(chalk.yellow("\n\nESC pressed, exiting..."));
