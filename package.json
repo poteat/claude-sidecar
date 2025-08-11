@@ -1,6 +1,6 @@
 {
   "name": "claude-sidecar",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Interactive steering for Claude Code during tool execution",
   "main": "dist/cli.js",
   "type": "module",
