@@ -43,9 +43,12 @@ claude-sidecar init
 While Claude Sidecar is running:
 
 - Type any message and press Enter to queue it for Claude
-- `status` - View all queued messages
-- `clear` - Clear the message queue
-- `exit` - Quit Claude Sidecar
+- `/status` - View all queued messages
+- `/clear` - Clear the message queue
+- `/help` - Show available commands
+- `/exit` - Quit Claude Sidecar
+- Press `Tab` after typing `/` to see all commands
+- Press `ESC` to exit immediately
 
 ### CLI Commands
 

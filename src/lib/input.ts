@@ -6,6 +6,12 @@ export class InputReader {
   private rl: readline.Interface;
   private queue: MessageQueue;
   private isRunning: boolean = false;
+  private commands = [
+    { name: "/status", description: "Show queue status" },
+    { name: "/clear", description: "Clear all messages" },
+    { name: "/help", description: "Show available commands" },
+    { name: "/exit", description: "Exit the program" },
+  ];
 
   constructor(queue: MessageQueue) {
     this.queue = queue;
@@ -13,7 +19,24 @@ export class InputReader {
       input: process.stdin,
       output: process.stdout,
       prompt: chalk.cyan("> "),
+      completer: (line: string) => this.completer(line),
     });
+  }
+
+  private completer(line: string): [string[], string] {
+    if (!line.startsWith("/")) {
+      return [[], line];
+    }
+
+    const completions = this.commands.map((cmd) => cmd.name);
+    const hits = completions.filter((c) => c.startsWith(line));
+
+    // Show all commands if only '/' is typed
+    if (line === "/") {
+      return [completions, line];
+    }
+
+    return [hits.length ? hits : completions, line];
   }
 
   start(): void {
@@ -27,7 +50,7 @@ export class InputReader {
       chalk.yellow("Type your feedback and press Enter to queue it.")
     );
     console.log(chalk.yellow("Messages will be sent at the next tool step."));
-    console.log(chalk.gray('Type "exit" to quit, "status" to see queue info'));
+    console.log(chalk.gray("Type /help for commands • Press ESC to exit"));
     console.log(chalk.gray("─".repeat(50)));
     console.log();
 
@@ -41,19 +64,27 @@ export class InputReader {
         return;
       }
 
-      if (trimmed.toLowerCase() === "exit") {
-        this.stop();
-        return;
-      }
+      // Handle slash commands
+      if (trimmed.startsWith("/")) {
+        const command = trimmed.toLowerCase();
 
-      if (trimmed.toLowerCase() === "status") {
-        await this.showStatus();
-        this.rl.prompt();
-        return;
-      }
-
-      if (trimmed.toLowerCase() === "clear") {
-        await this.clearQueue();
+        switch (command) {
+          case "/exit":
+            this.stop();
+            return;
+          case "/status":
+            await this.showStatus();
+            break;
+          case "/clear":
+            await this.clearQueue();
+            break;
+          case "/help":
+            this.showHelp();
+            break;
+          default:
+            console.log(chalk.red(`Unknown command: ${trimmed}`));
+            this.showHelp();
+        }
         this.rl.prompt();
         return;
       }
@@ -79,6 +110,30 @@ export class InputReader {
       console.log(chalk.yellow("\n\nReceived SIGINT, exiting..."));
       this.stop();
     });
+
+    // Listen for raw keypress events for immediate ESC handling
+    if (process.stdin.isTTY) {
+      // Use raw stdin for ESC detection to avoid readline buffering
+      process.stdin.on('data', (chunk) => {
+        // ESC key is ASCII 27 (0x1B)
+        if (chunk[0] === 27 && chunk.length === 1) {
+          console.log(chalk.yellow("\n\nESC pressed, exiting..."));
+          this.stop();
+        }
+      });
+    }
+  }
+
+  private showHelp(): void {
+    console.log(chalk.cyan("\n📚 Available Commands:"));
+    console.log(chalk.gray("─".repeat(40)));
+    this.commands.forEach((cmd) => {
+      console.log(
+        chalk.yellow(cmd.name.padEnd(12)) + chalk.gray(cmd.description)
+      );
+    });
+    console.log(chalk.gray("─".repeat(40)));
+    console.log(chalk.gray("\nTip: Type anything else to queue as feedback"));
   }
 
   private async showStatus(): Promise<void> {
@@ -94,7 +149,7 @@ export class InputReader {
 
       if (messages.length > 0) {
         console.log(chalk.gray("─".repeat(40)));
-        messages.forEach((msg, idx) => {
+        messages.forEach((msg) => {
           const timestamp = new Date(msg.timestamp).toLocaleTimeString();
           console.log(chalk.gray(`[${timestamp}]`) + ` ${msg.text}`);
         });
