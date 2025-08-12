@@ -1,20 +1,24 @@
 import * as readline from "readline";
 import { MessageQueue } from "./queue.js";
+import { RealtimeVoiceHandler } from "./realtime-voice.js";
 import chalk from "chalk";
 
 export class InputReader {
   private rl: readline.Interface;
   private queue: MessageQueue;
+  private voiceHandler: RealtimeVoiceHandler;
   private isRunning: boolean = false;
   private commands = [
     { name: "/status", description: "View queued messages" },
     { name: "/clear", description: "Clear message queue" },
+    { name: "/listen", description: "Start voice input (GPT-4o Realtime)" },
     { name: "/help", description: "Show available commands" },
     { name: "/exit", description: "Exit the program" },
   ];
 
   constructor(queue: MessageQueue) {
     this.queue = queue;
+    this.voiceHandler = new RealtimeVoiceHandler(queue);
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -70,13 +74,16 @@ export class InputReader {
 
         switch (command) {
           case "/exit":
-            this.stop();
+            await this.stop();
             return;
           case "/status":
             await this.showStatus();
             break;
           case "/clear":
             await this.clearQueue();
+            break;
+          case "/listen":
+            await this.toggleVoiceInput();
             break;
           case "/help":
             this.showHelp();
@@ -91,7 +98,7 @@ export class InputReader {
 
       try {
         await this.queue.addMessage(trimmed);
-        const queueSize = this.queue.getQueueSize();
+        const queueSize = await this.queue.getQueueSize();
         console.log(
           chalk.green(
             `✓ Message queued (${queueSize} message${
@@ -106,9 +113,9 @@ export class InputReader {
       this.rl.prompt();
     });
 
-    this.rl.on("SIGINT", () => {
+    this.rl.on("SIGINT", async () => {
       console.log(chalk.yellow("\n\nReceived SIGINT, exiting..."));
-      this.stop();
+      await this.stop();
     });
 
     // Listen for raw keypress events for immediate ESC handling
@@ -117,8 +124,15 @@ export class InputReader {
       process.stdin.on("data", (chunk) => {
         // ESC key is ASCII 27 (0x1B)
         if (chunk[0] === 27 && chunk.length === 1) {
-          console.log(chalk.yellow("\n\nESC pressed, exiting..."));
-          this.stop();
+          // If listening, stop voice input; otherwise exit
+          if (this.voiceHandler.getIsListening()) {
+            this.voiceHandler.stopListening().then(() => {
+              this.rl.prompt();
+            });
+          } else {
+            console.log(chalk.yellow("\n\nESC pressed, exiting..."));
+            this.stop().catch(() => process.exit(0));
+          }
         }
       });
     }
@@ -169,8 +183,19 @@ export class InputReader {
     }
   }
 
-  stop(): void {
+  private async toggleVoiceInput(): Promise<void> {
+    if (this.voiceHandler.getIsListening()) {
+      await this.voiceHandler.stopListening();
+    } else {
+      await this.voiceHandler.startListening();
+    }
+  }
+
+  async stop(): Promise<void> {
     this.isRunning = false;
+    if (this.voiceHandler.getIsListening()) {
+      await this.voiceHandler.stopListening();
+    }
     this.rl.close();
     process.exit(0);
   }

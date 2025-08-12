@@ -15,13 +15,27 @@ export class MessageQueue {
     this.lockFile = path.join(sidecarDir, "queue.lock");
   }
 
-  private async acquireLock(maxRetries = 10): Promise<boolean> {
+  private async acquireLock(maxRetries = 20): Promise<boolean> {
     for (let i = 0; i < maxRetries; i++) {
       try {
+        // Check if lock file exists and if it's stale (older than 5 seconds)
+        if (fs.existsSync(this.lockFile)) {
+          const stats = fs.statSync(this.lockFile);
+          const age = Date.now() - stats.mtimeMs;
+          if (age > 5000) {
+            // Remove stale lock
+            try {
+              fs.unlinkSync(this.lockFile);
+            } catch {
+              // Ignore if already removed
+            }
+          }
+        }
+
         fs.writeFileSync(this.lockFile, process.pid.toString(), { flag: "wx" });
         return true;
       } catch (err) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
     return false;
@@ -94,11 +108,17 @@ export class MessageQueue {
     return [];
   }
 
-  getQueueSize(): number {
+  async getQueueSize(): Promise<number> {
+    // Try to get size without lock first for performance
     try {
-      return this.readMessages().length;
+      if (fs.existsSync(this.queueFile)) {
+        const content = fs.readFileSync(this.queueFile, "utf-8");
+        const messages = JSON.parse(content);
+        return messages.length;
+      }
     } catch {
-      return 0;
+      // If there's an error reading, return 0
     }
+    return 0;
   }
 }

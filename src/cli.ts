@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("claude-sidecar")
   .description("Interactive steering for Claude Code during tool execution")
-  .version("0.1.0");
+  .version("1.0.0");
 
 program
   .command("start")
@@ -39,18 +39,12 @@ program
     console.log(chalk.bold.blue("🔧 Claude Sidecar Setup"));
     console.log(chalk.gray("─".repeat(50)));
 
-    const settingsPath = path.join(
-      os.homedir(),
-      ".claude",
-      "settings.json"
-    );
+    const settingsPath = path.join(os.homedir(), ".claude", "settings.json");
     const settingsDir = path.dirname(settingsPath);
 
     // Check if Claude Code settings exist
     if (!fs.existsSync(settingsDir)) {
-      console.log(
-        chalk.yellow("⚠️  Claude settings directory not found.")
-      );
+      console.log(chalk.yellow("⚠️  Claude settings directory not found."));
       console.log(chalk.gray(`Expected at: ${settingsDir}`));
 
       const { createDir } = await inquirer.prompt([
@@ -84,10 +78,8 @@ program
     }
 
     // Check for existing hooks
-    const hasExistingHook = settings.hooks?.PreToolUse?.some((entry: any) => 
-      entry.hooks?.some((hook: any) => 
-        hook.command === "claude-sidecar hook"
-      )
+    const hasExistingHook = settings.hooks?.PreToolUse?.some((entry: any) =>
+      entry.hooks?.some((hook: any) => hook.command === "claude-sidecar hook")
     );
 
     if (hasExistingHook) {
@@ -104,25 +96,31 @@ program
     }
 
     // Check if there's already a matcher for "*"
-    let wildcardMatcher = settings.hooks.PreToolUse.find((entry: any) => entry.matcher === "*");
-    
+    let wildcardMatcher = settings.hooks.PreToolUse.find(
+      (entry: any) => entry.matcher === "*"
+    );
+
     if (wildcardMatcher) {
       // Add to existing wildcard matcher
-      console.log(chalk.yellow("\n⚠️  Found existing wildcard matcher with hooks"));
+      console.log(
+        chalk.yellow("\n⚠️  Found existing wildcard matcher with hooks")
+      );
       console.log(chalk.gray("  Will add Claude Sidecar to existing hooks"));
-      
+
       if (!wildcardMatcher.hooks) {
         wildcardMatcher.hooks = [];
       }
-      
+
       // Show existing hooks
       if (wildcardMatcher.hooks.length > 0) {
         console.log(chalk.gray("\n  Existing hooks:"));
         wildcardMatcher.hooks.forEach((hook: any, idx: number) => {
-          console.log(chalk.gray(`    ${idx + 1}. ${hook.command || hook.type}`));
+          console.log(
+            chalk.gray(`    ${idx + 1}. ${hook.command || hook.type}`)
+          );
         });
       }
-      
+
       const { proceed } = await inquirer.prompt([
         {
           type: "confirm",
@@ -134,31 +132,35 @@ program
 
       if (!proceed) {
         console.log(chalk.yellow("\n📝 Manual Setup Required:"));
-        console.log(chalk.gray("Add this to the PreToolUse section in your Claude settings.json:"));
-        console.log(chalk.cyan('        {'));
+        console.log(
+          chalk.gray(
+            "Add this to the PreToolUse section in your Claude settings.json:"
+          )
+        );
+        console.log(chalk.cyan("        {"));
         console.log(chalk.cyan('          "type": "command",'));
         console.log(chalk.cyan('          "command": "claude-sidecar hook"'));
-        console.log(chalk.cyan('        }'));
+        console.log(chalk.cyan("        }"));
         process.exit(0);
       }
-      
+
       // Add our hook to the existing wildcard matcher
       wildcardMatcher.hooks.push({
         type: "command",
-        command: "claude-sidecar hook"
+        command: "claude-sidecar hook",
       });
     } else {
       // No wildcard matcher exists, create a new one
       console.log(chalk.gray("\n  Creating new hook configuration"));
-      
+
       settings.hooks.PreToolUse.push({
         matcher: "*",
         hooks: [
           {
             type: "command",
-            command: "claude-sidecar hook"
-          }
-        ]
+            command: "claude-sidecar hook",
+          },
+        ],
       });
     }
 
@@ -184,16 +186,16 @@ program
       console.log(chalk.gray("Add this to your Claude settings.json:"));
       console.log(chalk.cyan('\n"hooks": {'));
       console.log(chalk.cyan('  "PreToolUse": ['));
-      console.log(chalk.cyan('    {'));
+      console.log(chalk.cyan("    {"));
       console.log(chalk.cyan('      "matcher": "*",'));
       console.log(chalk.cyan('      "hooks": ['));
-      console.log(chalk.cyan('        {'));
+      console.log(chalk.cyan("        {"));
       console.log(chalk.cyan('          "type": "command",'));
       console.log(chalk.cyan('          "command": "claude-sidecar hook"'));
-      console.log(chalk.cyan('        }'));
-      console.log(chalk.cyan('      ]'));
-      console.log(chalk.cyan('    }'));
-      console.log(chalk.cyan('  ]'));
+      console.log(chalk.cyan("        }"));
+      console.log(chalk.cyan("      ]"));
+      console.log(chalk.cyan("    }"));
+      console.log(chalk.cyan("  ]"));
       console.log(chalk.cyan("}"));
     }
   });

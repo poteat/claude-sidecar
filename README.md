@@ -45,10 +45,11 @@ While Claude Sidecar is running:
 - Type any message and press Enter to queue it for Claude
 - `/status` - View all queued messages
 - `/clear` - Clear the message queue
+- `/listen` - Start voice input (requires OpenAI API key)
 - `/help` - Show available commands
 - `/exit` - Quit Claude Sidecar
 - Press `Tab` after typing `/` to see all commands
-- Press `ESC` to exit immediately
+- Press `ESC` to exit immediately (or stop voice input)
 
 ### CLI Commands
 
@@ -90,6 +91,62 @@ If automatic setup fails, add this to `~/.claude/settings.json`:
 ```
 
 Note: The init command will preserve your existing hooks and only add claude-sidecar if it's not already configured.
+
+## Voice Input Setup (Optional)
+
+The `/listen` command enables voice input using OpenAI's GPT-4o Realtime API for accurate, real-time transcription with built-in voice activity detection.
+
+### Prerequisites
+
+1. **Install audio dependencies** (macOS):
+
+   ```bash
+   brew install sox ffmpeg
+   ```
+
+   For Linux: `apt-get install sox ffmpeg libsox-fmt-all`
+   For Windows: Download SoX and ffmpeg from their respective websites
+
+2. **Set up OpenAI API key**:
+
+   ```bash
+   # Get your API key from: https://platform.openai.com/api-keys
+   export OPENAI_API_KEY=sk-...your-key-here...
+
+   # Add to your shell profile to persist:
+   echo 'export OPENAI_API_KEY=sk-...' >> ~/.zshrc  # or ~/.bashrc
+   ```
+
+### Using Voice Input
+
+Once configured:
+
+```bash
+> /listen
+Connecting to OpenAI Realtime API...
+✓ Connected to Realtime API
+
+🎤 Voice input active (GPT-4o Realtime)
+Speak naturally - using server-side voice detection
+Press ESC or type /listen again to stop
+
+[Listening...]
+✓ Transcribed: "Hello Claude, can you help me refactor this component?"
+  (1 message in queue)
+
+[Listening...]
+✓ Transcribed: "Also make sure to add proper TypeScript types."
+  (2 messages in queue)
+```
+
+Features:
+
+- **Real-time streaming transcription** - No more waiting for chunks
+- **Server-side Voice Activity Detection (VAD)** - Only transcribes actual speech
+- **No hallucinations** - GPT-4o Realtime doesn't generate false text from silence
+- **Low latency** - Immediate transcription as you speak
+- **WebSocket connection** - Continuous streaming without polling
+- **Automatic speech detection** - Knows when you start and stop speaking
 
 ## Example Workflow
 

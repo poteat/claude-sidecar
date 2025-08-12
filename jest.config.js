@@ -21,4 +21,6 @@ export default {
   testMatch: ["**/__tests__/**/*.test.ts"],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],
+  // Run tests sequentially to avoid race conditions with shared queue files
+  maxWorkers: 1,
 };
