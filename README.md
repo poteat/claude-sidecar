@@ -35,7 +35,7 @@ claude-sidecar init
 
 2. **Terminal 2**: Start Claude Sidecar
    ```bash
-   claude-sidecar start
+   claude-sidecar
    ```
 
 ### Interactive Commands
@@ -54,7 +54,7 @@ While Claude Sidecar is running:
 ### CLI Commands
 
 ```bash
-claude-sidecar start    # Start interactive input session
+claude-sidecar          # Start interactive input session
 claude-sidecar status   # Show current queue status
 claude-sidecar clear    # Clear all queued messages
 claude-sidecar init     # Configure Claude Code integration
@@ -64,8 +64,8 @@ claude-sidecar --help   # Show all commands
 ## How It Works
 
 1. **Message Queue**: Your feedback is stored in `~/.claude-sidecar/queue.json`
-2. **PreToolUse Hook**: Claude Code calls `claude-sidecar hook` before each tool execution
-3. **Stderr Output**: Queued messages are output to stderr with exit code 2 to block the tool and pipe feedback to Claude
+2. **PostToolHook**: Claude Code calls `claude-sidecar hook` after each tool execution
+3. **Stdout Output**: Queued messages are output to stdout for Claude to process
 4. **Automatic Clearing**: Messages are cleared after being delivered
 
 ## Manual Configuration
@@ -75,7 +75,7 @@ If automatic setup fails, add this to `~/.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "PreToolUse": [
+    "PostToolHook": [
       {
         "matcher": "*",
         "hooks": [
@@ -179,7 +179,7 @@ npm run build
 npm run dev
 
 # Test locally
-node dist/cli.js start
+node dist/cli.js
 ```
 
 ## Requirements

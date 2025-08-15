@@ -7,7 +7,7 @@ import * as os from "os";
 import inquirer from "inquirer";
 import { MessageQueue } from "./lib/queue.js";
 import { InputReader } from "./lib/input.js";
-import { handlePreToolStep } from "./lib/hook.js";
+import { handlePostToolStep } from "./lib/hook.js";
 
 const program = new Command();
 
@@ -17,19 +17,10 @@ program
   .version("1.0.0");
 
 program
-  .command("start")
-  .description("Start the interactive input session")
-  .action(() => {
-    const queue = new MessageQueue();
-    const reader = new InputReader(queue);
-    reader.start();
-  });
-
-program
   .command("hook")
-  .description("Hook handler for Claude Code (called automatically)")
+  .description("PostToolHook handler for Claude Code (called automatically)")
   .action(async () => {
-    await handlePreToolStep();
+    await handlePostToolStep();
   });
 
 program
@@ -78,7 +69,7 @@ program
     }
 
     // Check for existing hooks
-    const hasExistingHook = settings.hooks?.PreToolUse?.some((entry: any) =>
+    const hasExistingHook = settings.hooks?.PostToolHook?.some((entry: any) =>
       entry.hooks?.some((hook: any) => hook.command === "claude-sidecar hook")
     );
 
@@ -91,12 +82,12 @@ program
     if (!settings.hooks) {
       settings.hooks = {};
     }
-    if (!settings.hooks.PreToolUse) {
-      settings.hooks.PreToolUse = [];
+    if (!settings.hooks.PostToolHook) {
+      settings.hooks.PostToolHook = [];
     }
 
     // Check if there's already a matcher for "*"
-    let wildcardMatcher = settings.hooks.PreToolUse.find(
+    let wildcardMatcher = settings.hooks.PostToolHook.find(
       (entry: any) => entry.matcher === "*"
     );
 
@@ -134,7 +125,7 @@ program
         console.log(chalk.yellow("\n📝 Manual Setup Required:"));
         console.log(
           chalk.gray(
-            "Add this to the PreToolUse section in your Claude settings.json:"
+            "Add this to the PostToolHook section in your Claude settings.json:"
           )
         );
         console.log(chalk.cyan("        {"));
@@ -153,7 +144,7 @@ program
       // No wildcard matcher exists, create a new one
       console.log(chalk.gray("\n  Creating new hook configuration"));
 
-      settings.hooks.PreToolUse.push({
+      settings.hooks.PostToolHook.push({
         matcher: "*",
         hooks: [
           {
@@ -173,7 +164,7 @@ program
       console.log(chalk.bold.cyan("\n📚 Usage:"));
       console.log(chalk.gray("  1. Start Claude Code in one terminal"));
       console.log(
-        chalk.gray('  2. Run "claude-sidecar start" in another terminal')
+        chalk.gray('  2. Run "claude-sidecar" in another terminal')
       );
       console.log(
         chalk.gray(
@@ -185,7 +176,7 @@ program
       console.log(chalk.yellow("\n📝 Manual Setup Required:"));
       console.log(chalk.gray("Add this to your Claude settings.json:"));
       console.log(chalk.cyan('\n"hooks": {'));
-      console.log(chalk.cyan('  "PreToolUse": ['));
+      console.log(chalk.cyan('  "PostToolHook": ['));
       console.log(chalk.cyan("    {"));
       console.log(chalk.cyan('      "matcher": "*",'));
       console.log(chalk.cyan('      "hooks": ['));
@@ -248,9 +239,12 @@ program
     }
   });
 
-// Default action (show help)
+// Default action (start interactive session)
 if (process.argv.length === 2) {
-  program.outputHelp();
+  // No command provided, start interactive session
+  const queue = new MessageQueue();
+  const reader = new InputReader(queue);
+  reader.start();
 } else {
   program.parse(process.argv);
 }

@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { handlePreToolStep } from "../lib/hook";
+import { handlePostToolStep } from "../lib/hook";
 import { MessageQueue } from "../lib/queue";
 
 // Mock process.exit
@@ -9,19 +9,19 @@ const mockExit = jest.spyOn(process, "exit").mockImplementation(((
   throw new Error("process.exit called");
 }) as any);
 
-// Mock console.error
-const mockConsoleError = jest
-  .spyOn(console, "error")
+// Mock console.log
+const mockConsoleLog = jest
+  .spyOn(console, "log")
   .mockImplementation(() => {});
 
-describe("handlePreToolStep", () => {
+describe("handlePostToolStep", () => {
   let queue: MessageQueue;
 
   beforeEach(async () => {
     queue = new MessageQueue();
     // Ensure queue is empty
     await queue.getAndClearMessages();
-    mockConsoleError.mockClear();
+    mockConsoleLog.mockClear();
     mockExit.mockClear();
   });
 
@@ -30,28 +30,28 @@ describe("handlePreToolStep", () => {
     await queue.getAndClearMessages();
   });
 
-  it("should output messages to stderr and clear queue", async () => {
+  it("should output messages to stdout and clear queue", async () => {
     // Add some messages to the queue
     await queue.addMessage("First feedback");
     await queue.addMessage("Second feedback");
 
     // Run the hook handler
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
-    // Check that messages were output to stderr
-    expect(mockConsoleError).toHaveBeenCalledWith(
+    // Check that messages were output to stdout
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       "=== User Feedback from Claude Sidecar ==="
     );
-    expect(mockConsoleError).toHaveBeenCalledWith("[1/2] First feedback");
-    expect(mockConsoleError).toHaveBeenCalledWith("[2/2] Second feedback");
-    expect(mockConsoleError).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith("[1/2] First feedback");
+    expect(mockConsoleLog).toHaveBeenCalledWith("[2/2] Second feedback");
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       "=========================================="
     );
 
-    // Check that process.exit was called with code 2 (to block and pipe stderr)
-    expect(mockExit).toHaveBeenCalledWith(2);
+    // Check that process.exit was called with code 0 (non-blocking for PostToolHook)
+    expect(mockExit).toHaveBeenCalledWith(0);
 
-    // Check that queue was cleared (getAndClearMessages is called in handlePreToolStep)
+    // Check that queue was cleared (getAndClearMessages is called in handlePostToolStep)
     // Create a new queue instance to check the file state
     const newQueue = new MessageQueue();
     const remainingMessages = await newQueue.peekMessages();
@@ -60,10 +60,10 @@ describe("handlePreToolStep", () => {
 
   it("should handle empty queue silently", async () => {
     // Run hook with empty queue
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
-    // Should not output anything to stderr
-    expect(mockConsoleError).not.toHaveBeenCalled();
+    // Should not output anything to stdout
+    expect(mockConsoleLog).not.toHaveBeenCalled();
 
     // Should still exit cleanly
     expect(mockExit).toHaveBeenCalledWith(0);
@@ -72,10 +72,10 @@ describe("handlePreToolStep", () => {
   it("should handle single message correctly", async () => {
     await queue.addMessage("Single feedback");
 
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
-    expect(mockConsoleError).toHaveBeenCalledWith("[1/1] Single feedback");
-    expect(mockExit).toHaveBeenCalledWith(2);
+    expect(mockConsoleLog).toHaveBeenCalledWith("[1/1] Single feedback");
+    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should handle queue errors gracefully", async () => {
@@ -85,10 +85,10 @@ describe("handlePreToolStep", () => {
       Promise.reject(new Error("Lock error"))
     ) as any;
 
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
     // Should not output anything on error
-    expect(mockConsoleError).not.toHaveBeenCalled();
+    expect(mockConsoleLog).not.toHaveBeenCalled();
 
     // Should still exit
     expect(mockExit).toHaveBeenCalledWith(0);
@@ -103,15 +103,15 @@ describe("handlePreToolStep", () => {
       await queue.addMessage(`Message ${i}`);
     }
 
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
     // Check correct formatting
-    expect(mockConsoleError).toHaveBeenCalledWith("[1/5] Message 1");
-    expect(mockConsoleError).toHaveBeenCalledWith("[2/5] Message 2");
-    expect(mockConsoleError).toHaveBeenCalledWith("[3/5] Message 3");
-    expect(mockConsoleError).toHaveBeenCalledWith("[4/5] Message 4");
-    expect(mockConsoleError).toHaveBeenCalledWith("[5/5] Message 5");
-    expect(mockExit).toHaveBeenCalledWith(2);
+    expect(mockConsoleLog).toHaveBeenCalledWith("[1/5] Message 1");
+    expect(mockConsoleLog).toHaveBeenCalledWith("[2/5] Message 2");
+    expect(mockConsoleLog).toHaveBeenCalledWith("[3/5] Message 3");
+    expect(mockConsoleLog).toHaveBeenCalledWith("[4/5] Message 4");
+    expect(mockConsoleLog).toHaveBeenCalledWith("[5/5] Message 5");
+    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should handle messages with special characters", async () => {
@@ -119,9 +119,9 @@ describe("handlePreToolStep", () => {
       "Test with \"quotes\" and 'apostrophes' and \nnewlines";
     await queue.addMessage(specialMessage);
 
-    await expect(handlePreToolStep()).rejects.toThrow("process.exit called");
+    await expect(handlePostToolStep()).rejects.toThrow("process.exit called");
 
-    expect(mockConsoleError).toHaveBeenCalledWith(`[1/1] ${specialMessage}`);
-    expect(mockExit).toHaveBeenCalledWith(2);
+    expect(mockConsoleLog).toHaveBeenCalledWith(`[1/1] ${specialMessage}`);
+    expect(mockExit).toHaveBeenCalledWith(0);
   });
 });

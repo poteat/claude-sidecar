@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Features
 
 - **Real-time message queuing** - Queue feedback while Claude Code executes
-- **PreToolUse hook integration** - Seamless integration with Claude Code's hook system
+- **PostToolHook integration** - Seamless integration with Claude Code's hook system
 - **Non-blocking operation** - Only interrupts when messages are queued
 - **Interactive CLI** - User-friendly terminal interface with color-coded output
 - **Smart initialization** - Preserves existing hooks when configuring
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Commands
 
-- `claude-sidecar start` - Start interactive input session
+- `claude-sidecar` - Start interactive input session
 - `claude-sidecar init` - Configure Claude Code integration
 - `claude-sidecar status` - View queued messages
 - `claude-sidecar clear` - Clear message queue
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESM modules for modern JavaScript
 - Comprehensive test suite with Jest
 - File-based locking for concurrent access safety
-- Exit code 2 for proper stderr piping to Claude
+- Non-blocking PostToolHook with stdout output
 - Minimal dependencies (chalk, commander, inquirer)
 
 #### Compatibility
